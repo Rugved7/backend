@@ -14,7 +14,7 @@ const registerUser = asyncHandler(async (req, res) => {
     throw new ApiError(400, "All Fields are compulsory")
   }
   // check if user already exists
-  const existingUser = User.findOne({
+  const existingUser = await User.findOne({
     $or: [{ userName }, { email }],
   })
   if (existingUser) {
@@ -42,17 +42,16 @@ const registerUser = asyncHandler(async (req, res) => {
     userName: userName.toLowerCase(),
   })
   // check if user is created or not
-  const createdUser = await User.findById(_id).select(
+  const createdUser = await User.findById(user._id).select(
     "-password -refreshTokens"
   )
   if (!createdUser) {
     throw new ApiError(500, "Cannot Register User,Something went wrong")
   }
   // All Good , return the user
-  const response = await res
+  return await res
     .status(201)
     .json(new ApiResponse(200, createdUser, "User Registered Successfully"))
-  return response
 })
 
 export { registerUser }
