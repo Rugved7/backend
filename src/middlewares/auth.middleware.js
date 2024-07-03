@@ -1,15 +1,21 @@
-import { User } from "../models/user.model"
-import { ApiError } from "../utils/ApiError"
-import { asyncHandler } from "../utils/asyncHandler"
+import { User } from "../models/user.model.js"
+import { ApiError } from "../utils/ApiError.js"
+import { asyncHandler } from "../utils/asyncHandler.js"
 import jwt from "jsonwebtoken"
 
-const verifyJWT = asyncHandler(async (req, _, next) => {
+export const verifyJWT = asyncHandler(async (req, _, next) => {
     try {
-        const token = req.cookie?.accessToken || req.header("Authorization")?.replace("Bearer ", "")
+        const tokenFromcookie = await req.cookies?.accessToken
+        const tokenFromHeader = await req.header("Authorization")?.replace("Bearer ", "")
+        const token = tokenFromcookie || tokenFromHeader
+        console.log("Token", token);
+        if (typeof token !== 'string') {
+            throw new ApiError(401, "Invalid token type, string expected")
+        }
         if (!token) {
             throw new ApiError(401, "Unauthorized request")
         }
-        const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET)
+        const decodedToken = await jwt.verify(token, process.env.ACCESS_TOKEN_SECRET)
         const user = await User.findById(decodedToken?._id).select("-password -refreshTokens")
         if (!user) {
             throw new ApiError(401, "Invalid Access Token")
@@ -21,4 +27,3 @@ const verifyJWT = asyncHandler(async (req, _, next) => {
     }
 })
 
-export { verifyJWT }
