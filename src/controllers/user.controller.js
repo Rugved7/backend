@@ -294,4 +294,75 @@ const updateCoverImage = asyncHandler(async (req, res) => {
     )
 })
 
-export { registerUser, loginUser, logoutUser, refreshAccessToken, changePassword, getCurrentUser, updateAccountDetails, updateAvatar, updateCoverImage }
+// MongoDB Aggregation pipelines 
+const getChannelProfile = asyncHandler(async (req, res) => {
+  const { userName } = req.params
+
+  if (!userName?.trim()) {
+    throw new ApiError(400, "Username not found")
+  }
+  const channel = await User.aggregate([
+    {
+      $match: {
+        userName: userName?.toLowerCase()
+      }
+    },
+    {
+      $lookup: {
+        from: "subscriptions", // lowercase because mongodb saves all docs in lowercase
+        localField: "_id",
+        foreignField: "channel",
+        as: "subscribers"
+      }
+    },
+    {
+      $lookup: {
+        from: "subscriptions",
+        localField: "_id",
+        foreignField: "subscribers",
+        as: "subscriberdTo"
+      }
+    },
+    {
+      $addFields: {
+        subscribersCount: {
+          $size: "$subscribers"
+        },
+        channelSubscribedToCount: {
+          $size: "subscriberdTo"
+        },
+        isSubscribed: { // to know whether the users is subscribed the profile nor not 
+          $cond: {
+            if: { $in: [req.user?._id, "$subscribers.subscriber"] },
+            then: true,
+            else: false
+          }
+        }
+      }
+    },
+
+    // Project pipline delivers the deliverable to the frontend
+    {
+      $project: {
+        fullName: 1,
+        userName: 1,
+        email: 1,
+        subscribersCount: 1,
+        channelSubscribedToCount: 1,
+        isSubscribed: 1,
+        avatar: 1,
+        coverImage: 1,
+      }
+    }
+  ])
+  if (!channel?.length) {
+    throw new ApiError(404, "Channel Does not Exist")
+  }
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(200, channel[0], "channel Data Fetched Succesfully")
+    )
+})
+
+export { registerUser, loginUser, logoutUser, refreshAccessToken, changePassword, getCurrentUser, updateAccountDetails, updateAvatar, updateCoverImage, getChannelProfile }
