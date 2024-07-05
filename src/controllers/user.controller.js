@@ -361,7 +361,7 @@ const getChannelProfile = asyncHandler(async (req, res) => {
   return res
     .status(200)
     .json(
-      new ApiResponse(200, channel[0], "channel Data Fetched Succesfully")
+      new ApiResponse(200, channel[0], "channel Data fetched Succesfully")
     )
 })
 
