@@ -41,6 +41,7 @@ const registerUser = asyncHandler(async (req, res) => {
   }
   // check for filupload(avatar and coverimage)
   const avatarLocalPath = req.files?.avatar[0].path
+
   const coverImagePath = req.files?.coverImage[0]?.path
 
   if (!avatarLocalPath) {
